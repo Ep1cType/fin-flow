@@ -267,6 +267,7 @@ export default function TransactionForm({
                   rows={3}
                   className="resize-none"
                   {...field}
+                  value={field.value || ""}
                   data-testid="textarea-note"
                 />
               </FormControl>

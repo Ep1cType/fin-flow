@@ -12,11 +12,10 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Transaction } from "@shared/schema";
-import { CATEGORIES } from "@/lib/types";
+import type { Transaction, Category } from "@shared/schema";
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -34,6 +33,11 @@ export default function TransactionTable({
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Get categories from API
+  const categoriesQuery = useQuery<Category[]>({
+    queryKey: ["/api/categories"],
+  });
 
   const deleteTransactionMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -70,7 +74,8 @@ export default function TransactionTable({
   };
 
   const getCategoryInfo = (categoryKey: string) => {
-    return CATEGORIES[categoryKey as keyof typeof CATEGORIES] || {
+    const category = categoriesQuery.data?.find(cat => cat.key === categoryKey);
+    return category || {
       label: categoryKey,
       icon: "fas fa-question-circle",
       color: "bg-gray-100 text-gray-800"

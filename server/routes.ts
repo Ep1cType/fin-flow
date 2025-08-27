@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertTransactionSchema, type InsertTransaction } from "@shared/schema";
+import { insertTransactionSchema, insertCategorySchema, type InsertTransaction, type InsertCategory } from "@shared/schema";
 import { z } from "zod";
 
 const querySchema = z.object({
@@ -166,6 +166,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       res.status(500).json({ message: "Ошибка при получении сводки" });
     }
+  });
+
+  // Categories API Routes
+  
+  // Get all categories
+  app.get("/api/categories", async (req, res) => {
+    try {
+      const type = req.query.type as "income" | "expense" | "both" | undefined;
+      
+      if (type && ["income", "expense", "both"].includes(type)) {
+        const categories = await storage.getCategoriesByType(type);
+        res.json(categories);
+      } else {
+        const categories = await storage.getCategories();
+        res.json(categories);
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Ошибка при получении категорий" });
+    }
+  });
+
+  // Get category by ID
+  app.get("/api/categories/:id", async (req, res) => {
+    const category = await storage.getCategory(req.params.id);
+    if (!category) {
+      return res.status(404).json({ message: "Категория не найдена" });
+    }
+    res.json(category);
+  });
+
+  // Create new category
+  app.post("/api/categories", async (req, res) => {
+    try {
+      const data = insertCategorySchema.parse(req.body);
+      
+      // Check if category with this key already exists
+      const existingCategory = await storage.getCategoryByKey(data.key);
+      if (existingCategory) {
+        return res.status(400).json({ message: "Категория с таким ключом уже существует" });
+      }
+      
+      const category = await storage.createCategory(data);
+      res.status(201).json(category);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Ошибка валидации данных",
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Внутренняя ошибка сервера" });
+    }
+  });
+
+  // Update category
+  app.put("/api/categories/:id", async (req, res) => {
+    try {
+      const data = insertCategorySchema.partial().parse(req.body);
+      const category = await storage.updateCategory(req.params.id, data);
+      if (!category) {
+        return res.status(404).json({ message: "Категория не найдена" });
+      }
+      res.json(category);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Ошибка валидации данных",
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Внутренняя ошибка сервера" });
+    }
+  });
+
+  // Delete category
+  app.delete("/api/categories/:id", async (req, res) => {
+    const deleted = await storage.deleteCategory(req.params.id);
+    if (!deleted) {
+      return res.status(400).json({ message: "Невозможно удалить категорию по умолчанию или категория не найдена" });
+    }
+    res.status(204).send();
   });
 
   const httpServer = createServer(app);

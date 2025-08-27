@@ -31,7 +31,7 @@ export default function Dashboard() {
   // Date range handling
   if (filters.dateRange !== "all") {
     const now = new Date();
-    let startDate: Date, endDate: Date;
+    let startDate: Date | undefined, endDate: Date | undefined;
     
     switch (filters.dateRange) {
       case "today":
@@ -59,7 +59,7 @@ export default function Dashboard() {
         endDate = now;
     }
     
-    if (startDate! && endDate!) {
+    if (startDate && endDate) {
       queryParams.append("startDate", startDate.toISOString().split('T')[0]);
       queryParams.append("endDate", endDate.toISOString().split('T')[0]);
     }

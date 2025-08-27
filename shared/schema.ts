@@ -14,6 +14,17 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at", { withTimezone: false }).default(sql`now()`).notNull(),
 });
 
+export const categories = pgTable("categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  key: varchar("key").unique().notNull(),
+  label: text("label").notNull(),
+  icon: text("icon").notNull(),
+  color: text("color").notNull(),
+  type: text("type", { enum: ["income", "expense", "both"] }).notNull(),
+  isDefault: text("is_default", { enum: ["true", "false"] }).default("false").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: false }).default(sql`now()`).notNull(),
+});
+
 export const insertTransactionSchema = createInsertSchema(transactions).omit({
   id: true,
   createdAt: true,
@@ -24,5 +35,12 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
   date: z.date(),
 });
 
+export const insertCategorySchema = createInsertSchema(categories).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
+export type InsertCategory = z.infer<typeof insertCategorySchema>;
+export type Category = typeof categories.$inferSelect;

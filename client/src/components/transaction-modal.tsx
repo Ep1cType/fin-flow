@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { 
   Dialog,
   DialogContent,
@@ -28,10 +28,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { insertTransactionSchema } from "@shared/schema";
-import type { Transaction, InsertTransaction } from "@shared/schema";
+import type { Transaction, InsertTransaction, Category } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { CATEGORIES } from "@/lib/types";
 import { z } from "zod";
 
 const formSchema = insertTransactionSchema.extend({
@@ -149,15 +148,16 @@ export default function TransactionModal({
 
   const isLoading = createTransactionMutation.isPending || updateTransactionMutation.isPending;
 
-  // Get categories based on transaction type
-  const selectedType = form.watch("type");
-  const availableCategories = Object.entries(CATEGORIES).filter(([key, category]) => {
-    if (selectedType === "income") {
-      return ["salary", "freelance", "business", "investment", "gift", "other"].includes(key);
-    } else {
-      return ["food", "transport", "utilities", "entertainment", "healthcare", "shopping", "education", "other"].includes(key);
-    }
+  // Get categories from API
+  const categoriesQuery = useQuery<Category[]>({
+    queryKey: ["/api/categories"],
   });
+
+  // Filter categories based on transaction type
+  const selectedType = form.watch("type");
+  const availableCategories = categoriesQuery.data?.filter(category => {
+    return category.type === selectedType || category.type === "both";
+  }) || [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -255,9 +255,12 @@ export default function TransactionModal({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {availableCategories.map(([key, category]) => (
-                        <SelectItem key={key} value={key}>
-                          {category.label}
+                      {availableCategories.map((category) => (
+                        <SelectItem key={category.id} value={category.key}>
+                          <div className="flex items-center gap-2">
+                            <i className={category.icon}></i>
+                            {category.label}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -299,6 +302,7 @@ export default function TransactionModal({
                       rows={3}
                       className="resize-none"
                       {...field}
+                      value={field.value || ""}
                       data-testid="textarea-note"
                     />
                   </FormControl>

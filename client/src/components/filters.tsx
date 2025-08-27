@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/select";
 import { Search, RefreshCw, Calendar, Tags, ArrowUpDown, Coins } from "lucide-react";
 import type { FilterState } from "@/lib/types";
-import { CATEGORIES } from "@/lib/types";
+import type { Category } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
 
 interface FiltersProps {
   filters: FilterState;
@@ -19,6 +20,11 @@ interface FiltersProps {
 }
 
 export default function Filters({ filters, onFiltersChange }: FiltersProps) {
+  // Get categories from API
+  const categoriesQuery = useQuery<Category[]>({
+    queryKey: ["/api/categories"],
+  });
+
   const handleSearchChange = (value: string) => {
     onFiltersChange({ ...filters, search: value });
   };
@@ -65,7 +71,8 @@ export default function Filters({ filters, onFiltersChange }: FiltersProps) {
 
   const getCategoryLabel = () => {
     if (!filters.category) return "Все категории";
-    return CATEGORIES[filters.category as keyof typeof CATEGORIES]?.label || "Все категории";
+    const category = categoriesQuery.data?.find(cat => cat.key === filters.category);
+    return category?.label || "Все категории";
   };
 
   return (
@@ -124,9 +131,12 @@ export default function Filters({ filters, onFiltersChange }: FiltersProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Все категории</SelectItem>
-                  {Object.entries(CATEGORIES).map(([key, category]) => (
-                    <SelectItem key={key} value={key}>
-                      {category.label}
+                  {categoriesQuery.data?.map((category) => (
+                    <SelectItem key={category.id} value={category.key}>
+                      <div className="flex items-center gap-2">
+                        <i className={category.icon}></i>
+                        {category.label}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
