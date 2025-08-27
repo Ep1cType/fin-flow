@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  finance-app:
+    build: .
+    container_name: finance-app
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persist SQLite database
+      - finance-data:/app/data
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=/app/data/database.sqlite
+      - PORT=3000
+      - SESSION_SECRET=change-this-in-production-to-a-secure-random-string
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  finance-data:
+    driver: local
